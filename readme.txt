@@ -52,11 +52,11 @@ Once you add a list of locations from Map Routes > Add New Location, the route w
 
 = How do I define all the locations for my Google Maps Route ? =
 
-Through Map Routes > Add New Location you can “Add New Location” to the list of locations and view all your locations in Map Routes > List Locations.
+Through `Map Routes > Add New Location` you can “Add New Location” to the list of locations and view all your locations in Map Routes > List Locations.
 
-= How do I get customization or new plugins made =
+= How do I get customization or new plugins made ? =
 
-You can hire us to make customizations / plugins / themes. [Contact Us](http://netmadeez.com/contact "Contact US")
+You can hire us to make customizations / plugins / themes. [Contact Us](http://netmadeez.com/contact "Contact Us")
 
 == Screenshots ==
 
