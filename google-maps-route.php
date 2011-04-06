@@ -5,7 +5,7 @@
   Version: 1.0
   Author: NetMadeEz
   Author URI: http://netmadeez.com/
-  Plugin URI: http://netmadeez.com/
+  Plugin URI: http://netmadeez.com/blog/google-maps-route-plugin/
  */
  
 global $gmr_is_script_included;
