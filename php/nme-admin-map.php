@@ -6,7 +6,7 @@
 function nme_gmaps_page() {
     global $wpdb, $table_gmaps;
     $table_gmaps = $wpdb->base_prefix . 'nme_gmaps_data';
-    if (isset($_POST) && $_POST['nme-save-gmaps'] === "Save GMaps") {
+    if (isset($_POST['nme-save-gmaps'])) {
         $address = trim($_POST['nme-address']);
         $title = $_POST['nme-title'];
         $description = $_POST['nme-desc-gmaps'];

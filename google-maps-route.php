@@ -2,7 +2,7 @@
 /*
   Plugin Name: Google Maps Route Plugin
   Description: Google Maps Route is an open source a solution built for Wordpress to display several locations along a route on Google Maps.
-  Version: 1.0
+  Version: 1.0.1
   Author: NetMadeEz
   Author URI: http://netmadeez.com/
   Plugin URI: http://netmadeez.com/blog/google-maps-route-plugin/
