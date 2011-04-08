@@ -6,7 +6,7 @@ Requires at least: 2.8
 Tested up to: 3.1.1
 Stable tag: 1.0.2
 
-Google Maps Route is an open source a solution built for Wordpress to display several locations along a route on Google Maps.
+Google Maps Route is an open source solution built for Wordpress to display several locations along a route on Google Maps.
 
 == Description ==
 
