@@ -91,6 +91,30 @@ class WP_GMaps_Widget extends WP_Widget {
                 $gmr_is_script_included = true;
             }
             echo  $output;
+            if (get_option('nme_link_back') === 'checked') {
+                $display = '';
+                if (get_option('nme_link_back_hidden') === 'checked') {
+                    $display = 'display:none;';
+                }
+                echo '<style>
+                            span.nme_link_back {
+                                    font-style: italic;
+                                    position: relative;
+                                    font-size: 10px;
+                                    ' . $display . '
+                            }
+                            span.nme_link_back a {
+                                    color: #666;
+                                    display: inline-block;
+                                    line-height: 16px;
+                                    text-decoration: none;
+                            }
+                            span.nme_link_back a:hover {
+                                    text-decoration: underline;
+                            }
+                      </style>
+                      <span class="nme_link_back"><a title="WordPress Plugin" href="http://netmadeez.com/">WordPress Plugin</a> by <a title="WordPress Plugin" href="http://netmadeez.com/">NetMadeEz</a></span>';
+            }
         ?>
         </div>
     <?php

@@ -260,6 +260,8 @@ function nme_settings_gmaps_page() {
         update_option('nme_marker_color', $_POST['nme-marker-color']);
         update_option('nme_marker_width', $_POST['nme-marker-width']);
         update_option('nme_marker_transparent', $_POST['nme-marker-trans']);
+        update_option('nme_link_back', $_POST['nme-link-back']);
+        update_option('nme_link_back_hidden', $_POST['nme-link-back-hidden']);
 
         echo '<div class="updated fade">Settings Successfully Saved</div>';
     }
@@ -267,6 +269,8 @@ function nme_settings_gmaps_page() {
     $gmaps_marker = get_option('nme_marker_color');
     $gmaps_marker_width = get_option('nme_marker_width');
     $gmaps_marker_transparent = get_option('nme_marker_transparent');
+    $gmaps_linkback = get_option('nme_link_back');
+    $gmaps_linkback_hidden = get_option('nme_link_back_hidden');
 ?>
     <div class="wrap">
         <h2>Google Maps Settings</h2>
@@ -290,6 +294,23 @@ function nme_settings_gmaps_page() {
             <tr valign="top">
                 <th scope="row"><label for="nme-marker-trans">Route Transparency</label></th>
                 <td><input id="nme-marker-trans" type="text" size="3" value="<?php echo $gmaps_marker_transparent; ?>" name="nme-marker-trans" /><span class="description">Value between 0 to 1 including decimal value</span></td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">
+                    <label for="nme-link-back">Give back link to Author</label>
+                    <?php
+                    if ($gmaps_linkback === 'checked') {
+                        echo '<img src="' . NME_GMP_PLUGIN_URL . '/images/smile.png" />';
+                    }
+                    else {
+                        echo '<img src="' . NME_GMP_PLUGIN_URL . '/images/sad.png" />';
+                    }
+                    ?>
+                </th>
+                <td>
+                    <input id="nme-link-back" type="checkbox" value="checked" name="nme-link-back" <?php echo $gmaps_linkback; ?> /><label for="nme-link-back">&nbsp;&nbsp;&nbsp;<span class="description">Shows a link saying "<a title="WordPress Plugin" href="http://netmadeez.com/">WordPress Plugin</a> by <a title="WordPress Plugin" href="http://netmadeez.com/">NetMadeEz</a>" below Map. If its unchecked, then no link will come.</span></label><br/>
+                    <input id="nme-link-back-hidden" type="checkbox" value="checked" name="nme-link-back-hidden" <?php echo $gmaps_linkback_hidden; ?> /><label for="nme-link-back-hidden">&nbsp;&nbsp;&nbsp;<span class="description">Link is there but its hidden. Will not work if the above checkbox is not checked.</span></label>
+                </td>
             </tr>
             <tr valign="top">
                 <th></th>
