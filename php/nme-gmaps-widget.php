@@ -14,10 +14,10 @@ class WP_GMaps_Widget extends WP_Widget {
     }
 
     function widget($args, $instance) {
-        if (get_option('nme_gmaps_apikey')) {
-            global $gmr_is_script_included, $wpdb;
+            global $gmr_is_script_included, $wpdb, $table_gmaps;
             extract($args);
             $id = 'gmr_widget_' . $widget_id;
+            $widget_id = str_replace('-', '_', $widget_id);
             extract(shortcode_atts( array(
                 'height' => '300',
                 'width' => '300',
@@ -26,11 +26,29 @@ class WP_GMaps_Widget extends WP_Widget {
                 ), $instance));
             $h = !empty($height) ? $height : '200';
             $w = !empty($width) ? $width : '200';
-
-            $table_gmaps = $wpdb->base_prefix . 'nme_gmaps_data';
+            $route_opacity  = get_option('nme_marker_transparent');
+            $route_width    = get_option('nme_marker_width');
+            $route_color    = get_option('nme_marker_color');
+            if( !$route_opacity ){
+                $route_opacity = '1.0';
+            }
+            if( !$route_width ){
+                $route_width = '2';
+            }
+            if( !$route_color ){
+                $route_color = '#FF0000';
+            }
             $sql = "SELECT * from {$table_gmaps}";
+            $order = get_option('nme_gmaps_location_order');
+            if(!is_array($order)){
+                $order = array();
+            }
+            if( count($order) > 0 ){
+                $order_str = implode(', ', $order);
+                $sql .= " ORDER BY FIELD(id, {$order_str})";
+            }
             $sql_results = $wpdb->get_results($sql, ARRAY_A);
-
+            $center = $sql_results[0]['gmaps_lat_log'];
             echo $before_widget;
             if (!empty($title)) {
                 echo $before_title . $title . $after_title;
@@ -38,58 +56,75 @@ class WP_GMaps_Widget extends WP_Widget {
     ?>
             <div class="gmapswidget">
         <?php
+            $output = '';
+            if (!$gmr_is_script_included) {
+                $output .= '<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>';
+                $gmr_is_script_included = true;
+            }
             $points = array();
-            $marker = '';
+            $output.='<div id="' . $id . '" style="width:' . $w . 'px;height:' . $h . 'px"></div>';
+            $output.='<script type="text/javascript">';
+            $output.='var map_'.$widget_id.', marker, markerLatlng, flightPath, flightPlanCoordinates, infoWindow;
+                        function initialize_'.$widget_id.'() {
+                          var mapOptions = {
+                            zoom: 6,
+                            center: new google.maps.LatLng('.$center.'),
+                            mapTypeId: google.maps.MapTypeId.ROADMAP
+                          };
+                          map_'.$widget_id.' = new google.maps.Map(document.getElementById(\'' . $id . '\'),
+                              mapOptions);
+                        ';
             $i = count($sql_results)+1;
             foreach ($sql_results as $result) {
-                if ($disable_popup != 'checked') {
                 $data = $result['gmaps_title'] . '<br><small>' . substr($result['gmaps_description'], 0, 50) . '...</small>';
-                }
+                
                 $value = explode(',', $result['gmaps_lat_log']);
                 $lat = $value[0];
                 $lng = $value[1];
-                $points[] = 'new GLatLng(' . $lat . ',' . $lng . ')';
-                $marker.= 'bounds.extend(new GLatLng(' . $lat . ',' . $lng . '));';
-                $marker.= 'var pt_' . $i . '=new GLatLng(' . $lat . ',' . $lng . ');';
-                $marker.='var markerManager' . $i . '= new GMarker(pt_' . $i . ');';
-                if ($disable_popup != 'checked') {
-                    $marker.= 'var html' . $i . ' = "' . $data . '";';
-                    $marker.='GEvent.addListener(markerManager' . $i . ',"mouseover",function(){
-                          markerManager' . $i . '.openInfoWindowHtml(html' . $i . ');});';
-                    $marker.='GEvent.addListener(markerManager' . $i . ', "mouseout", function() {
-                          markerManager' . $i . '.closeInfoWindow(html' . $i . ');});';
+                $points[] = 'new google.maps.LatLng(' . $lat . ',' . $lng . ')';
+                $output .= 'var marker_'.$widget_id.'_'.$i.' = new google.maps.Marker({
+                      position: new google.maps.LatLng(' . $lat . ',' . $lng . '),
+                      map: map_'.$widget_id.',
+                      title: \'' . $result['gmaps_title'] . '\'
+                  });
+                  infoWindow_'.$widget_id.'_'.$i.' = new google.maps.InfoWindow({
+                    content: \'' . $data . '\'
+                  });';
+                if( $result['gmaps_url'] != ''){
+                    $output .= 'google.maps.event.addListener(marker_'.$widget_id.'_'.$i.', "click", function() {
+                                    window.location = \'' . $result['gmaps_url'] . '\';
+                                });';
                 }
-                $marker.='GEvent.addListener(markerManager' . $i . ', "click", function() {
-                      window.location = "' . $result['gmaps_url'] . '";});';
-                $marker.='map.addOverlay(markerManager' . $i . ');';
+                if ($disable_popup != 'checked') {
+                      $output .= 'google.maps.event.addListener(marker_'.$widget_id.'_'.$i.', "mouseover", function() {
+                                    infoWindow_'.$widget_id.'_'.$i.'.open(map_'.$widget_id.', marker_'.$widget_id.'_'.$i.');
+                                  });
+                                  google.maps.event.addListener(marker_'.$widget_id.'_'.$i.', "mouseout", function() {
+                                        infoWindow_'.$widget_id.'_'.$i.'.close(map_'.$widget_id.', marker_'.$widget_id.'_'.$i.');
+                                  });';
+                }
                 $i++;
             }
-            $points = implode(',', $points);
 
-            $output = '';
-            $output.='<div id="' . $id . '" style="width:' . $w . 'px;height:' . $h . 'px"></div>';
+            $points_str = implode(', ', $points);
+            $output .='flightPlanCoordinates = ['.$points_str.'];
+                       flightPath = new google.maps.Polyline({
+                                path: flightPlanCoordinates,
+                                strokeColor: \''.$route_color.'\',
+                                strokeOpacity: '.$route_opacity.',
+                                strokeWeight: '.$route_width.'
+                          });
+                          flightPath.setMap(map_'.$widget_id.');';
+            $output .='var latlngbounds = new google.maps.LatLngBounds();
+                       for ( var i = 0; i < flightPlanCoordinates.length; i++ ) {
+                            latlngbounds.extend( flightPlanCoordinates[ i ] );
+                       }
+                       map_'.$widget_id.'.fitBounds( latlngbounds );';
+            $output .='}';
+            $output .='google.maps.event.addDomListener(window, \'load\', initialize_'.$widget_id.');';
 
-            $output.='<script>';
-            $output.='var map = new GMap2(document.getElementById("' . $id . '"));';
-            $output.='map.addControl(new GMapTypeControl(true));';
-            $output.='map.addControl(new GSmallZoomControl());';
-            $output.= 'var bounds = new GLatLngBounds;';
-
-            $output.= $marker;
-            $output.='map.setCenter(bounds.getCenter());';
-            $output.='var minZoom = Math.min(map.getBoundsZoomLevel(bounds), 5);';
-            $output.='map.setZoom(minZoom);';
-            $output.='map.setMapType(G_PHYSICAL_MAP); ';
-
-            $output.='var points =[' . $points . '];';
-            $output.='var polyline = new GPolyline(points, "' . get_option('nme_marker_color') . '", ' . get_option('nme_marker_width') . ', ' . get_option('nme_marker_transparent') . ');';
-            $output.='map.addOverlay(polyline);';
             $output.='</script>';
 
-            if (!$gmr_is_script_included) {
-                echo '<script src="http://maps.google.com/maps?file=api&v=2&sensor=true&key=' . get_option('nme_gmaps_apikey') . '" type="text/javascript"></script>';
-                $gmr_is_script_included = true;
-            }
             echo  $output;
             if (get_option('nme_link_back') === 'checked') {
                 $display = '';
@@ -119,7 +154,6 @@ class WP_GMaps_Widget extends WP_Widget {
         </div>
     <?php
             echo $after_widget;
-        }
     }
 
     function update($new_instance, $old_instance) {

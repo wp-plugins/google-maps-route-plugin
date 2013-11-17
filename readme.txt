@@ -2,11 +2,11 @@
 Contributors: NetMadeEz
 Donate link: http://netmadeez.com/services/
 Tags: google map trace, google map route, google maps, shortcode, maps, google
-Requires at least: 2.8
-Tested up to: 3.1.1
-Stable tag: 1.0.2
+Requires at least: 3.5.1
+Tested up to: 3.7.1
+Stable tag: 1.0.3
 
-Google Maps Route is an open source solution built for Wordpress to display several locations along a route on Google Maps.
+Google Maps Route is an open source a solution built for Wordpress to display several locations along a route on Google Maps.
 
 == Description ==
 
@@ -71,3 +71,8 @@ You can hire us to make customizations / plugins / themes. [Contact Us](http://n
 
 = 1.0.1 =
 * Fixed Add Location Bug.
+
+= 1.0.2=
+* Updated Google Map api to V3*
+* Updated Geo Location api*
+* Added Route Sorting Option*

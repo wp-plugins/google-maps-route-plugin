@@ -12,7 +12,7 @@ function nme_gmaps_page() {
         $description = $_POST['nme-desc-gmaps'];
         $nme_url = $_POST['nme-url-gmaps'];
 
-        $url = "http://maps.google.com/maps/geo?q=" . urlencode($address) . "&output=csv&key=" . $nme_apikey;
+        $url = "http://maps.googleapis.com/maps/api/geocode/json?address=" . urlencode($address) . "&sensor=false";
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER["HTTP_USER_AGENT"]);
@@ -20,12 +20,12 @@ function nme_gmaps_page() {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         $data = curl_exec($ch);
         curl_close($ch);
+        $data = json_decode($data);
+        $result = $data->results;
 
-        if (substr($data, 0, 3) == "200") {
-            $data = explode(",", $data);
-            $precision = $data[1];
-            $latitude = $data[2];
-            $longitude = $data[3];
+        if ($data->status == 'OK') {
+            $latitude = $result[0]->geometry->location->lat;
+            $longitude = $result[0]->geometry->location->lng;
 
             $result_id = $wpdb->insert(
                             $table_gmaps,
@@ -38,12 +38,12 @@ function nme_gmaps_page() {
                             ),
                             array('%s', '%s', '%s', '%s', '%s'));
             if ($result_id) {
-                echo '<div class="updated fade">Location Saved Successfully!!!</div>';
+                echo '<div class="updated fade"><p><strong>Location Saved Successfully!!!</strong></p></div>';
             } else {
                 echo '<div class="error">Error Saving Data</div>';
             }
         } else {
-            echo '<div class="error"><b>Http error ' . substr($data, 0, 3) . ' Error Saving Data</b></div>';
+            echo '<div class="error"><p><b>Error Featching Location Coordinates.</b></p></div>';
         }
     }
 ?>
@@ -82,14 +82,15 @@ function nme_gmaps_page() {
 function nme_list_gmaps_page() {
     global $wpdb;
     $table_gmaps = $wpdb->base_prefix . 'nme_gmaps_data';
-    if ($_REQUEST['page'] === 'nme-list-gmaps-page' && $_REQUEST['action'] === 'edit') {
+    if ( (isset($_REQUEST['page']) && $_REQUEST['page'] === 'nme-list-gmaps-page')  && ( isset ($_REQUEST['action']) && $_REQUEST['action'] === 'edit') ) {
+        $id = $_GET['id'];
         if (isset($_POST['nme-update-gmaps'])) {
             $address = trim($_POST['nme-address']);
             $title = $_POST['nme-title'];
             $description = $_POST['nme-desc-gmaps'];
             $nme_url = $_POST['nme-url-gmaps'];
 
-            $url = "http://maps.google.com/maps/geo?q=" . urlencode($address) . "&output=csv&key=" . $nme_apikey;
+            $url = "http://maps.googleapis.com/maps/api/geocode/json?address=" . urlencode($address) . "&sensor=false";
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -98,14 +99,14 @@ function nme_list_gmaps_page() {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             $data = curl_exec($ch);
             curl_close($ch);
+            $data = json_decode($data);
+            $result = $data->results;
             
-            if (substr($data, 0, 3) == "200") {
-                $data = explode(",", $data);
-                $precision = $data[1];
-                $latitude = $data[2];
-                $longitude = $data[3];
+            if ($data->status == 'OK') {
+                $latitude   = $result[0]->geometry->location->lat;
+                $longitude  = $result[0]->geometry->location->lng;
 
-                $result_id = $wpdb->update(
+                $result_id  = $wpdb->update(
                                 $table_gmaps,
                                 array(
                                     'gmaps_address' => $address,
@@ -118,15 +119,15 @@ function nme_list_gmaps_page() {
                                 array('%s', '%s', '%s', '%s', '%s'),
                                 array('%d'));
                 if ($result_id) {
-                    echo '<div class="updated fade">Location Successfully Edited !!!</div>';
+                    echo '<div class="updated fade"><p><strong>Location Successfully Edited !!!</strong></p></div>';
                 } else {
-                    echo '<div class="error">Error Saving Data</div>';
+                    echo '<div class="error"><p><strong>Error Saving Data</p></strong></div>';
                 }
             } else {
-                echo '<div class="error"><b>Http error ' . substr($data, 0, 3) . ' Error Saving Data</b></div>';
+                echo '<div class="error"><p><strong>Error Featching Location Coordinates.</strong></p></div>';
             }
         }
-        $id = $_GET['id'];
+        
         $sql = "select * from {$table_gmaps} WHERE `id`={$id}";
         $sql_result = $wpdb->get_row($sql, ARRAY_A);
 ?>
@@ -137,7 +138,10 @@ function nme_list_gmaps_page() {
                 <table class="form-table">
                     <tr valign="top">
                         <th scope="row"><label for="nme-address">Address</label></th>
-                        <td><input type="text" name="nme-address" id="nme-address" value="<?php echo $sql_result['gmaps_address'] ?>" size="80"></td>
+                        <td>
+                            <input type="text" name="nme-address" id="nme-address" value="<?php echo $sql_result['gmaps_address'] ?>" size="80">
+                            <br /><span class="description">Coordinates: <?php echo $sql_result['gmaps_lat_log']; ?></span>
+                        </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row"><label for="nme-title">Title</label></th>
@@ -165,6 +169,11 @@ function nme_list_gmaps_page() {
         <div class ="wrap">
             <h2>Location Listing</h2>
 <?php
+        $order = get_option('nme_gmaps_location_order');
+        if(!is_array($order)){
+            $order = array();
+        }
+        
         $sql = "SELECT * from {$table_gmaps} ";
         $pagenum = isset($_GET['paged']) ? $_GET['paged'] : 1;
         $per_page = 20;
@@ -179,7 +188,12 @@ function nme_list_gmaps_page() {
                     'total' => ceil($action_count / $per_page),
                     'current' => $pagenum
                 ));
+        if( count($order) > 0 ){
+            $order_str = implode(', ', $order);
+            $sql .= " ORDER BY FIELD(id, {$order_str})";
+        }
         $sql .= " LIMIT {$action_offset}, {$per_page}";
+        
         $gmaps_ids = $wpdb->get_results($sql);
 
         if (!empty($gmaps_ids)) {
@@ -205,9 +219,10 @@ function nme_list_gmaps_page() {
     <div class="clear"></div>
     <?php if (!empty($gmaps_ids)) {
  ?>
-            <table class="widefat post fixed" cellspacing="0">
+            <table class="widefat post fixed nme_location_table" cellspacing="0">
                 <thead>
-                    <tr>
+                    <tr class="header">
+                        <th class="check-column" ></th>
                         <th class="check-column" scope="row"></th>
                         <th>Location Address</th>
                         <th>Title</th>
@@ -216,17 +231,17 @@ function nme_list_gmaps_page() {
                         <th>Date</th>
                     </tr>
                 </thead>
-                <tbody>        
+                <tbody>
 <?php
             $i = 1;
             $count = (($pagenum-1)*$per_page)+1;
             foreach ($gmaps_ids as $gid) {
-
                 if ($i % 2 == 0) {
                     echo '<tr class="alternate">';
                 } else {
                     echo '<tr>';
                 }
+                echo '<td><i class="icon-move" rel="'.$gid->id.'"></i></td>';
                 echo '<td class="check-column">' . $count . '</td>';
                 echo '<td>' . $gid->gmaps_address . '<p><a href="admin.php?page=nme-list-gmaps-page&action=edit&id=' . $gid->id . '">Edit</a> | <a class="remove-admin-gmaps" style="cursor:pointer" rel="' . $gid->id . '">Delete</a></p></td>';
                 echo '<td>' . $gid->gmaps_title . '</td>';
@@ -256,16 +271,14 @@ function nme_list_gmaps_page() {
 function nme_settings_gmaps_page() {
     global $wpdb;
     if (isset($_POST['nme-save-apikey']) == 'Save Key') {
-        update_option('nme_gmaps_apikey', $_POST['nme-gmap-api-key']);
         update_option('nme_marker_color', $_POST['nme-marker-color']);
         update_option('nme_marker_width', $_POST['nme-marker-width']);
         update_option('nme_marker_transparent', $_POST['nme-marker-trans']);
         update_option('nme_link_back', $_POST['nme-link-back']);
         update_option('nme_link_back_hidden', $_POST['nme-link-back-hidden']);
 
-        echo '<div class="updated fade">Settings Successfully Saved</div>';
+        echo '<div class="updated fade"><p><strong>Settings Successfully Saved</strong></p></div>';
     }
-    $gmaps_api_key = get_option('nme_gmaps_apikey');
     $gmaps_marker = get_option('nme_marker_color');
     $gmaps_marker_width = get_option('nme_marker_width');
     $gmaps_marker_transparent = get_option('nme_marker_transparent');
@@ -273,17 +286,9 @@ function nme_settings_gmaps_page() {
     $gmaps_linkback_hidden = get_option('nme_link_back_hidden');
 ?>
     <div class="wrap">
-        <h2>Google Maps Settings</h2>
-<?php if (empty($gmaps_api_key)) {
- ?>
-            <p>If you don't have a Google Maps API Key, <a target="_blank" href="http://www.google.com/apis/maps/signup.html">click here</a>.</p>
-    <?php } ?>
-    <form method="post">
+    <h2>Google Maps Settings</h2>
+    <form method="post" action="">
         <table class="form-table">
-            <tr valign="top">
-                <th scope="row"><label for="nme-gmap-api-key">Enter API Key</label></th>
-                <td><input id="nme-gmap-api-key" type="text" size="45" value="<?php echo $gmaps_api_key; ?>" name="nme-gmap-api-key" /></td>
-            </tr>
             <tr valign="top">
                 <th scope="row"><label for="nme-marker-color">Route Color</label></th>
                 <td><input id="nme-marker-color" type="text" size="7" value="<?php echo $gmaps_marker; ?>" name="nme-marker-color" /><span class="description">6 digit hex color code. e.g.: #FFFFFF</span></td>
@@ -371,4 +376,19 @@ function nme_delete_gmaps() {
 }
 
 add_action('wp_ajax_nme_delete_gmaps', 'nme_delete_gmaps');
+
+add_action('wp_ajax_nme_gmaps_update_order', 'nme_gmaps_update_order');
+
+/**
+ * function to update order of locations by ajax
+ */
+function nme_gmaps_update_order(){
+    $ids = isset($_POST['ids']) ? $_POST['ids'] : array();
+    if( !empty ($ids)){
+        if(update_option('nme_gmaps_location_order', $ids))
+            die(true);
+        else
+            die(false);
+    }
+}
 ?>

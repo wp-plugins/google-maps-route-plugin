@@ -16,4 +16,32 @@ jQuery(document).ready(function(){
             });
         }
     });
+
+
+    jQuery('.nme_location_table').sortable({
+        containerSelector: 'table',
+        itemPath: '> tbody',
+        itemSelector: 'tr',
+        handle: 'i.icon-move',
+        placeholder: '<tr class="placeholder"/>',
+        onDrop: function (item, container, _super) {
+            _super(item, container);
+            var ids = new Array();
+            jQuery('.nme_location_table tbody tr').each(function (){
+                var rel = jQuery(this).children().find('.icon-move').attr('rel');
+                ids.push(rel);
+            });
+            if( ids.length ){
+                jQuery.ajax({
+                    type    :   'POST',
+                    url     :   ajaxurl,
+                    data    :   {
+                        action : 'nme_gmaps_update_order',
+                        ids     :   ids
+                    },
+                    success: function(){}
+                });
+            }
+        }
+    });
 });
